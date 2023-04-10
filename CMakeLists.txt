@@ -18,10 +18,11 @@ qt_add_executable(chat
 )
 
 qt_add_qml_module(chat
-    URI gpt4all-chat
+    URI gpt4all
     VERSION 1.0
     QML_FILES main.qml
     RESOURCES icons/send_message.svg icons/stop_generating.svg icons/regenerate.svg
+    SOURCES chat.h chat.cpp
 )
 
 set_target_properties(chat PROPERTIES

@@ -85,6 +85,7 @@ LLM::LLM()
     : QObject{nullptr}
     , m_gptj(new GPTJObject)
     , m_responseInProgress(false)
+    , m_currentChat(nullptr)
 {
     connect(m_gptj, &GPTJObject::isModelLoadedChanged, this, &LLM::isModelLoadedChanged, Qt::QueuedConnection);
     connect(m_gptj, &GPTJObject::responseChanged, this, &LLM::responseChanged, Qt::QueuedConnection);
@@ -93,6 +94,9 @@ LLM::LLM()
 
     connect(this, &LLM::promptRequested, m_gptj, &GPTJObject::prompt, Qt::QueuedConnection);
     connect(this, &LLM::resetResponseRequested, m_gptj, &GPTJObject::resetResponse, Qt::BlockingQueuedConnection);
+
+    if (m_chatList.isEmpty())
+        addChat();
 }
 
 bool LLM::isModelLoaded() const
@@ -130,4 +134,47 @@ void LLM::responseStopped()
 {
     m_responseInProgress = false;
     emit responseInProgressChanged();
+}
+
+QString LLM::addChat()
+{
+    m_chatList.append(new Chat(this));
+    emit chatListChanged();
+    if (m_chatList.count() < 2)
+        setCurrentChat(m_chatList.last());
+    return m_chatList.last()->id();
+}
+
+void LLM::removeChat(Chat *chat)
+{
+    if (!m_chatList.contains(chat))
+        return;
+    m_chatList.removeAll(chat);
+    emit chatListChanged();
+    if (!m_chatList.isEmpty())
+        setCurrentChat(nullptr);
+}
+
+void LLM::saveChat(Chat *chat)
+{
+}
+
+void LLM::copyChat(Chat *chat)
+{
+}
+
+QList<Chat*> LLM::chatList() const
+{
+    return m_chatList;
+}
+
+Chat *LLM::currentChat() const
+{
+    return m_currentChat;
+}
+
+void LLM::setCurrentChat(Chat *chat)
+{
+    m_currentChat = chat;
+    emit currentChatChanged();
 }

@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
     qmlRegisterSingletonInstance("llm", 1, 0, "LLM", LLM::globalInstance());
-    const QUrl url(u"qrc:/gpt4all-chat/main.qml"_qs);
+    const QUrl url(u"qrc:/gpt4all/main.qml"_qs);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
         &app, [url](QObject *obj, const QUrl &objUrl) {

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import llm
+import gpt4all
 
 Window {
     id: window
@@ -32,8 +33,34 @@ Window {
                 radius: 10
                 color: "#343541"
             }
+            onClicked: LLM.addChat()
+        }
+
+        ListView {
+            id: chatListView
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: newChat.bottom
+            anchors.bottom: parent.bottom
+            anchors.margins: 15
+
+            model: LLM.chatList
+
+            delegate: Button {
+                padding: 15
+                width: chatListView.width
+
+                contentItem: Text {
+                    color: "#bababe"
+                    text: modelData.name
+                    elide: Text.ElideRight
+                    clip: true
+                }
+            }
         }
     }
+
+    property list<ChatItem> chatModel: LLM.currentChat.chatModel
 
     Rectangle {
         id: conversation
@@ -51,10 +78,6 @@ Window {
             anchors.bottom: textInput.top
             anchors.bottomMargin: 30
             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-
-            ListModel {
-                id: chatModel
-            }
 
             Rectangle {
                 anchors.fill: parent
@@ -79,17 +102,17 @@ Window {
 
                     model: chatModel
                     delegate: TextArea {
-                        text: currentResponse ? LLM.response : value
+                        text: modelData.currentResponse ? LLM.response : value
                         width: listView.width
                         color: "#d1d5db"
                         wrapMode: Text.WordWrap
                         focus: false
                         padding: 20
                         font.pixelSize: 24
-                        cursorVisible: currentResponse ? LLM.responseInProgress : false
+                        cursorVisible: modelData.currentResponse ? LLM.responseInProgress : false
                         cursorPosition: text.length
                         background: Rectangle {
-                            color: name === qsTr("Response: ") ? "#444654" : "#343541"
+                            color: modelData.name === qsTr("Response: ") ? "#444654" : "#343541"
                         }
 
                         leftPadding: 100
@@ -102,11 +125,11 @@ Window {
                             width: 30
                             height: 30
                             radius: 5
-                            color: name === qsTr("Response: ") ? "#10a37f" : "#ec86bf"
+                            color: modelData.name === qsTr("Response: ") ? "#10a37f" : "#ec86bf"
 
                             Text {
                                 anchors.centerIn: parent
-                                text: name === qsTr("Response: ") ? "R" : "P"
+                                text: modelData.name === qsTr("Response: ") ? "R" : "P"
                                 color: "white"
                             }
                         }
@@ -150,7 +173,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 15
-                source: LLM.responseInProgress ? "qrc:/gpt4all-chat/icons/stop_generating.svg" : "qrc:/gpt4all-chat/icons/regenerate.svg"
+                source: LLM.responseInProgress ? "qrc:/gpt4all/icons/stop_generating.svg" : "qrc:/gpt4all/icons/regenerate.svg"
             }
             leftPadding: 50
             text: LLM.responseInProgress ? qsTr("Stop generating") : qsTr("Regenerate response")
@@ -200,20 +223,22 @@ Window {
             onAccepted: {
                 LLM.stopGenerating()
 
-                if (chatModel.count) {
-                    var listElement = chatModel.get(chatModel.count - 1)
-                    listElement.currentResponse = false
-                    listElement.value = LLM.response
+                var item = LLM.currentChat.lastItem();
+                if (item) {
+                    item.currentResponse = false
+                    item.value = LLM.response
                 }
 
                 var prompt = textInput.text + "\n"
-                chatModel.append({"name": qsTr("Prompt: "), "currentResponse": false, "value": textInput.text})
-                chatModel.append({"name": qsTr("Response: "), "currentResponse": true, "value": "", "prompt": prompt})
+                var item = LLM.currentChat.addItem();
+                item.name = qsTr("Prompt: ")
+                item.currentResponse = false
+                item.value = textInput.text
 
-//                var contextPrompt;
-//                for (var i = 0; i < chatModel.count; ++i)
-//                    contextPrompt += chatModel.get(i).value + "\n";
-//                prompt = contextPrompt + textInput.text + "\n"
+                var item = LLM.currentChat.addItem();
+                item.name = qsTr("Response: ")
+                item.currentResponse = true
+                item.prompt = prompt
 
                 LLM.resetResponse()
                 LLM.prompt(prompt)
@@ -229,7 +254,7 @@ Window {
 
                 background: Image {
                     anchors.centerIn: parent
-                    source: "qrc:/gpt4all-chat/icons/send_message.svg"
+                    source: "qrc:/gpt4all/icons/send_message.svg"
                 }
 
                 onClicked: {
